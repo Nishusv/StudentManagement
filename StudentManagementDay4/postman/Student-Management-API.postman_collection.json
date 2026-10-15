@@ -1,0 +1,90 @@
+{
+  "info": {
+    "_postman_id": "4c1f0c3e-8b41-4d3c-8d3b-7a0f5c42d104",
+    "name": "Student Management API - Day 4 Demo",
+    "description": "Ready-to-import collection for the Spring Boot Student Management REST API. Login stores the JWT automatically. Run requests in order or use the folder-level flow. Default backend URL: http://localhost:8080.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "studentId", "value": "1", "type": "string" },
+    { "key": "createdStudentId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login - get JWT token",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Login returns 200', function () { pm.response.to.have.status(200); });",
+            "const body = pm.response.json();",
+            "pm.test('Response contains a JWT token', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });",
+            "if (body.token) { pm.collectionVariables.set('token', body.token); }",
+            "pm.test('Response identifies the demo admin', function () { pm.expect(body.email).to.eql('admin@demo.com'); pm.expect(body.role).to.eql('ADMIN'); });"
+          ] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"Admin123!\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }, "description": "Run first. The test script saves the returned JWT into the collection variable named token." },
+          "response": []
+        },
+        {
+          "name": "Login - invalid credentials (expect 401)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Invalid credentials return 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"wrong@example.com\",\n  \"password\": \"wrong-password\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] } },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Students - CRUD (JWT required)",
+      "item": [
+        {
+          "name": "List all students (GET)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('List students returns 200', function () { pm.response.to.have.status(200); });",
+            "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });",
+            "pm.test('Seed data contains at least 3 students', function () { pm.expect(pm.response.json().length).to.be.at.least(3); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{baseUrl}}/api/students", "host": ["{{baseUrl}}"], "path": ["api", "students"] }, "description": "The H2 database is preloaded with Aarav Sharma, Diya Rao and Kabir Singh." }, "response": []
+        },
+        {
+          "name": "Get student by ID (GET)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Get student returns 200', function () { pm.response.to.have.status(200); });", "pm.test('Student has expected fields', function () { const s = pm.response.json(); pm.expect(s).to.have.property('id'); pm.expect(s).to.have.property('name'); pm.expect(s).to.have.property('email'); });"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{baseUrl}}/api/students/{{studentId}}", "host": ["{{baseUrl}}"], "path": ["api", "students", "{{studentId}}"] } }, "response": []
+        },
+        {
+          "name": "Create student (POST)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Create student returns 201', function () { pm.response.to.have.status(201); });",
+            "const body = pm.response.json();",
+            "pm.test('Created student has an ID', function () { pm.expect(body.id).to.exist; });",
+            "if (body.id) { pm.collectionVariables.set('createdStudentId', String(body.id)); pm.collectionVariables.set('studentId', String(body.id)); }"
+          ] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Meera Nair\",\n  \"email\": \"meera.nair@example.com\",\n  \"course\": \"Full Stack Java\",\n  \"marks\": 89.5\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/students", "host": ["{{baseUrl}}"], "path": ["api", "students"] }, "description": "Creates a student and stores the returned ID for the update/delete examples." }, "response": []
+        },
+        {
+          "name": "Update student (PUT)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Update student returns 200', function () { pm.response.to.have.status(200); });", "pm.test('Updated course is saved', function () { pm.expect(pm.response.json().course).to.eql('Full Stack Java - Updated'); });"] } }],
+          "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Meera Nair\",\n  \"email\": \"meera.nair@example.com\",\n  \"course\": \"Full Stack Java - Updated\",\n  \"marks\": 91.0\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/students/{{createdStudentId}}", "host": ["{{baseUrl}}"], "path": ["api", "students", "{{createdStudentId}}"] }, "description": "Run after Create student." }, "response": []
+        },
+        {
+          "name": "Delete created student (DELETE)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Delete student returns 204', function () { pm.response.to.have.status(204); });"] } }],
+          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{baseUrl}}/api/students/{{createdStudentId}}", "host": ["{{baseUrl}}"], "path": ["api", "students", "{{createdStudentId}}"] }, "description": "Run after Create and Update. Deletes only the student created by this collection." }, "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Security checks",
+      "item": [
+        {
+          "name": "List students without token (expect 401)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Protected endpoint rejects missing JWT', function () { pm.response.to.have.status(401); });"] } }],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/students", "host": ["{{baseUrl}}"], "path": ["api", "students"] }, "description": "Demonstrates that student endpoints are protected by JWT authentication." }, "response": []
+        }
+      ]
+    }
+  ]
+}

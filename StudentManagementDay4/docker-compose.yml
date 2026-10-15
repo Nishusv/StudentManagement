@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: studentsdb
+      POSTGRES_USER: studentapp
+      POSTGRES_PASSWORD: studentpass
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studentapp -d studentsdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  backend:
+    build: ./backend
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/studentsdb
+      DB_USER: studentapp
+      DB_PASSWORD: studentpass
+      JWT_SECRET: local-docker-demo-secret-key-change-before-production-123456
+    ports: ["8080:8080"]
+    depends_on:
+      db:
+        condition: service_healthy
